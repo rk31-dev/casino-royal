@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>High & Low: Drinker's Luck</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Roboto+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --neon-pink: #ff00ff;
+            --neon-blue: #00ffff;
+            --neon-green: #00ff00;
+            --neon-red: #ff0000;
+            --bg-dark: #050505;
+        }
+
+        body {
+            font-family: 'Roboto Mono', monospace;
+            background-color: var(--bg-dark);
+            color: white;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        .font-impact {
+            font-family: 'Black Ops One', cursive;
+        }
+
+        /* Animations */
+        @keyframes spin-suspense {
+            0% {
+                transform: rotateY(0deg);
+            }
+
+            100% {
+                transform: rotateY(1080deg);
+            }
+
+            /* 3 spins */
+        }
+
+        @keyframes shake-hard {
+            0% {
+                transform: translate(1px, 1px) rotate(0deg);
+            }
+
+            10% {
+                transform: translate(-1px, -2px) rotate(-1deg);
+            }
+
+            20% {
+                transform: translate(-3px, 0px) rotate(1deg);
+            }
+
+            30% {
+                transform: translate(3px, 2px) rotate(0deg);
+            }
+
+            40% {
+                transform: translate(1px, -1px) rotate(1deg);
+            }
+
+            50% {
+                transform: translate(-1px, 2px) rotate(-1deg);
+            }
+
+            60% {
+                transform: translate(-3px, 1px) rotate(0deg);
+            }
+
+            70% {
+                transform: translate(3px, 1px) rotate(-1deg);
+            }
+
+            80% {
+                transform: translate(-1px, -1px) rotate(1deg);
+            }
+
+            90% {
+                transform: translate(1px, 2px) rotate(0deg);
+            }
+
+            100% {
+                transform: translate(1px, -2px) rotate(-1deg);
+            }
+        }
+
+        @keyframes pulse-red {
+            0% {
+                background-color: var(--bg-dark);
+            }
+
+            50% {
+                background-color: #330000;
+            }
+
+            100% {
+                background-color: var(--bg-dark);
+            }
+        }
+
+        @keyframes flash-gold {
+            0% {
+                background-color: var(--bg-dark);
+            }
+
+            25% {
+                background-color: #FFD700;
+            }
+
+            50% {
+                background-color: var(--bg-dark);
+            }
+
+            75% {
+                background-color: #FFD700;
+            }
+
+            100% {
+                background-color: var(--bg-dark);
+            }
+        }
+
+        .animate-spin-suspense {
+            animation: spin-suspense 1.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+
+        .animate-shake {
+            animation: shake-hard 0.5s;
+            animation-iteration-count: infinite;
+        }
+
+        .bg-pulse-red {
+            animation: pulse-red 0.5s infinite;
+        }
+
+        .bg-flash-gold {
+            animation: flash-gold 1s infinite;
+        }
+
+        /* 3D Card */
+        .perspective-1000 {
+            perspective: 1000px;
+        }
+
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+
+        .card-front,
+        .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 4px solid;
+        }
+
+        .card-front {
+            background: white;
+            color: black;
+            transform: rotateY(0deg);
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 15px var(--neon-blue);
+        }
+
+        .card-back {
+            background: #111;
+            transform: rotateY(180deg);
+            border-color: var(--neon-pink);
+            box-shadow: 0 0 15px var(--neon-pink);
+        }
+
+        .card-flip {
+            transform: rotateY(180deg);
+        }
+
+        /* UI Elements */
+        .neon-text-blue {
+            text-shadow: 0 0 10px var(--neon-blue), 0 0 20px var(--neon-blue);
+        }
+
+        .neon-text-pink {
+            text-shadow: 0 0 10px var(--neon-pink), 0 0 20px var(--neon-pink);
+        }
+
+        .neon-text-red {
+            text-shadow: 0 0 10px var(--neon-red), 0 0 30px var(--neon-red);
+        }
+
+        .btn-party {
+            transition: transform 0.1s;
+        }
+
+        .btn-party:active {
+            transform: scale(0.95);
+        }
+
+        .suit-red {
+            color: #ff0000;
+        }
+
+        .suit-black {
+            color: #000000;
+        }
+
+        /* Overlay */
+        #overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 100;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body class="h-screen w-screen flex flex-col overflow-hidden">
+
+    <!-- Overlay for Drink/Joker -->
+    <div id="overlay">
+        <h1 id="overlay-title" class="font-impact text-6xl md:text-9xl mb-4 neon-text-red text-white">DRINK!!</h1>
+        <p id="overlay-desc" class="text-2xl md:text-4xl text-white font-bold">BOTTOMS UP</p>
+        <button id="overlay-btn"
+            class="mt-12 px-8 py-4 bg-white text-black font-bold text-xl rounded-full hover:bg-gray-200">NEXT
+            PLAYER</button>
+    </div>
+
+    <!-- Header: Streak & Penalty -->
+    <header
+        class="flex-none p-4 flex justify-between items-start z-10 bg-black/50 backdrop-blur-sm border-b border-gray-800">
+        <div class="text-left">
+            <div class="text-xs text-gray-400">CURRENT STREAK</div>
+            <div id="streak-display" class="font-impact text-5xl text-white neon-text-blue">0</div>
+        </div>
+        <div class="text-right">
+            <div class="text-xs text-gray-400">NEXT PENALTY</div>
+            <div id="penalty-display" class="font-impact text-3xl text-yellow-400 neon-text-red">SIP</div>
+        </div>
+    </header>
+
+    <!-- Main Game Area -->
+    <main class="flex-1 flex flex-col items-center justify-center relative">
+
+        <div class="flex items-center justify-center gap-4 md:gap-12 w-full px-4">
+            <!-- Current Card -->
+            <div class="perspective-1000 w-36 h-56 md:w-56 md:h-80">
+                <div id="current-card" class="card-inner">
+                    <div class="card-front flex-col">
+                        <!-- JS Injected -->
+                    </div>
+                    <div class="card-back"></div>
+                </div>
+            </div>
+
+            <!-- VS -->
+            <div class="font-impact text-4xl text-gray-600 italic">VS</div>
+
+            <!-- Next Card (Deck) -->
+            <div class="perspective-1000 w-36 h-56 md:w-56 md:h-80">
+                <div id="next-card" class="card-inner card-flip">
+                    <div class="card-front flex-col">
+                        <!-- JS Injected -->
+                    </div>
+                    <div class="card-back flex-col">
+                        <span class="font-impact text-5xl text-pink-500 opacity-80">?</span>
+                        <span class="text-xs mt-2 text-pink-400">NEXT</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Message -->
+        <div id="message-area" class="h-12 mt-8 flex items-center justify-center">
+            <span class="text-xl font-bold text-cyan-300 animate-pulse">CHOOSE YOUR FATE...</span>
+        </div>
+
+    </main>
+
+    <!-- Controls -->
+    <footer class="flex-none p-6 pb-10 bg-black/50 backdrop-blur-sm border-t border-gray-800">
+        <div id="controls" class="grid grid-cols-2 gap-4 max-w-lg mx-auto">
+            <button id="btn-high"
+                class="btn-party bg-gradient-to-t from-blue-900 to-blue-600 border-2 border-blue-400 rounded-xl py-6 shadow-[0_0_20px_rgba(0,0,255,0.5)]">
+                <div class="font-impact text-3xl text-white">HIGH ▲</div>
+            </button>
+            <button id="btn-low"
+                class="btn-party bg-gradient-to-t from-pink-900 to-pink-600 border-2 border-pink-400 rounded-xl py-6 shadow-[0_0_20px_rgba(255,0,255,0.5)]">
+                <div class="font-impact text-3xl text-white">LOW ▼</div>
+            </button>
+        </div>
+    </footer>
+
+    <script>
+        /**
+         * AUDIO SYSTEM
+         */
+        class PartySound {
+            constructor() {
+                this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                this.masterGain = this.ctx.createGain();
+                this.masterGain.gain.value = 0.5;
+                this.masterGain.connect(this.ctx.destination);
+                this.drumLoop = null;
+            }
+
+            async init() {
+                if (this.ctx.state === 'suspended') await this.ctx.resume();
+            }
+
+            playTone(freq, type, duration, startTime = 0) {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, this.ctx.currentTime + startTime);
+                gain.gain.setValueAtTime(0.2, this.ctx.currentTime + startTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + startTime + duration);
+                osc.connect(gain);
+                gain.connect(this.masterGain);
+                osc.start(this.ctx.currentTime + startTime);
+                osc.stop(this.ctx.currentTime + startTime + duration);
+            }
+
+            startDrumroll() {
+                // Low rumble noise
+                const bufferSize = this.ctx.sampleRate * 2.0;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = (Math.random() * 2 - 1) * 0.5;
+                }
+
+                this.drumLoop = this.ctx.createBufferSource();
+                this.drumLoop.buffer = buffer;
+                this.drumLoop.loop = true;
+
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.value = 150;
+
+                const gain = this.ctx.createGain();
+                gain.gain.value = 0.8;
+
+                this.drumLoop.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.masterGain);
+                this.drumLoop.start();
+            }
+
+            stopDrumroll() {
+                if (this.drumLoop) {
+                    this.drumLoop.stop();
+                    this.drumLoop = null;
+                }
+                // Cymbal crash at end
+                this.playNoise(0.5, 'highpass', 1000);
+            }
+
+            playNoise(duration, filterType, filterFreq) {
+                const bufferSize = this.ctx.sampleRate * duration;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+                const src = this.ctx.createBufferSource();
+                src.buffer = buffer;
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = filterType;
+                filter.frequency.value = filterFreq;
+                const gain = this.ctx.createGain();
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                src.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.masterGain);
+                src.start();
+            }
+
+            playExplosion() {
+                // Deep boom
+                this.playTone(50, 'sawtooth', 1.0);
+                this.playNoise(1.0, 'lowpass', 200);
+            }
+
+            playFanfare() {
+                // Major chord
+                [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => {
+                    this.playTone(f, 'square', 0.5, i * 0.1);
+                });
+            }
+
+            playDing() {
+                this.playTone(1200, 'sine', 0.3);
+            }
+        }
+
+        /**
+         * GAME LOGIC
+         */
+        const SUITS = ['♠', '♥', '♦', '♣'];
+        const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+
+        class Card {
+            constructor(suit, rank, value, isJoker = false) {
+                this.suit = suit;
+                this.rank = rank;
+                this.value = value;
+                this.isJoker = isJoker;
+            }
+            getHTML() {
+                if (this.isJoker) return `<div class="text-6xl">🃏</div><div class="font-bold mt-2">JOKER</div>`;
+                const color = (this.suit === '♥' || this.suit === '♦') ? 'suit-red' : 'suit-black';
+                return `
+                    <div class="absolute top-2 left-2 text-2xl ${color}">${this.rank}</div>
+                    <div class="text-7xl ${color}">${this.suit}</div>
+                    <div class="absolute bottom-2 right-2 text-2xl ${color} rotate-180">${this.rank}</div>
+                `;
+            }
+        }
+
+        class DrinkerGame {
+            constructor() {
+                this.deck = [];
+                this.currentCard = null;
+                this.nextCard = null;
+                this.streak = 0;
+                this.isProcessing = false;
+
+                this.sound = new PartySound();
+
+                this.ui = {
+                    currentCard: document.getElementById('current-card'),
+                    nextCard: document.getElementById('next-card'),
+                    streak: document.getElementById('streak-display'),
+                    penalty: document.getElementById('penalty-display'),
+                    overlay: document.getElementById('overlay'),
+                    overlayTitle: document.getElementById('overlay-title'),
+                    overlayDesc: document.getElementById('overlay-desc'),
+                    overlayBtn: document.getElementById('overlay-btn'),
+                    message: document.getElementById('message-area'),
+                    btnHigh: document.getElementById('btn-high'),
+                    btnLow: document.getElementById('btn-low')
+                };
+
+                this.init();
+            }
+
+            init() {
+                this.createDeck();
+                this.currentCard = this.draw();
+                while (this.currentCard.isJoker) this.currentCard = this.draw();
+                this.renderCard(this.ui.currentCard, this.currentCard);
+                this.updatePenalty();
+
+                this.ui.btnHigh.addEventListener('click', () => this.guess('HIGH'));
+                this.ui.btnLow.addEventListener('click', () => this.guess('LOW'));
+                this.ui.overlayBtn.addEventListener('click', () => this.closeOverlay());
+            }
+
+            createDeck() {
+                this.deck = [];
+                for (let s of SUITS) {
+                    for (let i = 0; i < RANKS.length; i++) {
+                        this.deck.push(new Card(s, RANKS[i], i + 2));
+                    }
+                }
+                this.deck.push(new Card('Joker', 'Joker', 99, true));
+                this.deck.push(new Card('Joker', 'Joker', 99, true));
+
+                // Shuffle
+                for (let i = this.deck.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [this.deck[i], this.deck[j]] = [this.deck[j], this.deck[i]];
+                }
+            }
+
+            draw() {
+                if (this.deck.length === 0) this.createDeck();
+                return this.deck.pop();
+            }
+
+            getPenaltyText() {
+                if (this.streak <= 2) return "SIP (OCHOKO)";
+                if (this.streak <= 4) return "HALF GLASS";
+                return "BOTTOMS UP!!";
+            }
+
+            updatePenalty() {
+                this.ui.streak.textContent = this.streak;
+                const text = this.getPenaltyText();
+                this.ui.penalty.textContent = text;
+
+                if (this.streak >= 5) {
+                    this.ui.penalty.className = "font-impact text-3xl text-red-500 neon-text-red animate-pulse";
+                } else if (this.streak >= 3) {
+                    this.ui.penalty.className = "font-impact text-3xl text-yellow-400 neon-text-pink";
+                } else {
+                    this.ui.penalty.className = "font-impact text-3xl text-green-400 neon-text-blue";
+                }
+            }
+
+            async guess(choice) {
+                if (this.isProcessing) return;
+                this.isProcessing = true;
+                await this.sound.init();
+
+                // 1. Setup Next Card
+                this.nextCard = this.draw();
+                const front = this.ui.nextCard.querySelector('.card-front');
+                front.innerHTML = this.nextCard.getHTML();
+
+                // 2. Suspense Animation
+                this.sound.startDrumroll();
+                this.ui.nextCard.classList.add('animate-spin-suspense');
+                this.ui.message.innerHTML = '<span class="text-yellow-400 text-2xl font-impact">ROLLING...</span>';
+
+                // 3. Wait 1.5s
+                await new Promise(r => setTimeout(r, 1500));
+
+                // 4. Reveal
+                this.sound.stopDrumroll();
+                this.ui.nextCard.classList.remove('animate-spin-suspense');
+                this.ui.nextCard.classList.remove('card-flip');
+
+                // 5. Logic
+                let win = false;
+                let isJoker = this.nextCard.isJoker;
+
+                if (isJoker) {
+                    win = true; // Joker is technically a "win" for the player, but penalty for others
+                } else {
+                    if (choice === 'HIGH' && this.nextCard.value > this.currentCard.value) win = true;
+                    else if (choice === 'LOW' && this.nextCard.value < this.currentCard.value) win = true;
+                }
+
+                if (isJoker) {
+                    this.handleJoker();
+                } else if (win) {
+                    this.handleWin();
+                } else {
+                    this.handleLoss();
+                }
+            }
+
+            handleWin() {
+                this.sound.playDing();
+                this.streak++;
+                this.ui.message.innerHTML = '<span class="text-green-400 font-bold">SAFE! NEXT PLAYER...</span>';
+                this.updatePenalty();
+                this.prepareNextRound();
+            }
+
+            handleLoss() {
+                this.sound.playExplosion();
+                document.body.classList.add('animate-shake', 'bg-pulse-red');
+
+                // Show Overlay
+                this.ui.overlayTitle.textContent = "DRINK!!";
+                this.ui.overlayTitle.className = "font-impact text-6xl md:text-9xl mb-4 neon-text-red text-white";
+                this.ui.overlayDesc.textContent = this.getPenaltyText();
+                this.ui.overlay.style.display = 'flex';
+
+                this.streak = 0; // Reset
+            }
+
+            handleJoker() {
+                this.sound.playFanfare();
+                document.body.classList.add('bg-flash-gold');
+
+                // Show Overlay
+                this.ui.overlayTitle.textContent = "ALL DRINK!!";
+                this.ui.overlayTitle.className = "font-impact text-6xl md:text-8xl mb-4 text-yellow-400 neon-text-pink";
+                this.ui.overlayDesc.textContent = `EVERYONE BUT YOU: ${this.getPenaltyText()}`;
+                this.ui.overlay.style.display = 'flex';
+
+                this.streak = 0; // Reset
+            }
+
+            closeOverlay() {
+                this.ui.overlay.style.display = 'none';
+                document.body.classList.remove('animate-shake', 'bg-pulse-red', 'bg-flash-gold');
+                this.updatePenalty();
+                this.prepareNextRound();
+            }
+
+            async prepareNextRound() {
+                await new Promise(r => setTimeout(r, 1000));
+
+                // Move next to current
+                this.ui.nextCard.classList.add('card-flip');
+
+                if (this.nextCard.isJoker) {
+                    this.currentCard = this.draw();
+                    while (this.currentCard.isJoker) this.currentCard = this.draw();
+                } else {
+                    this.currentCard = this.nextCard;
+                }
+
+                setTimeout(() => {
+                    this.renderCard(this.ui.currentCard, this.currentCard);
+                    this.ui.message.innerHTML = '<span class="text-cyan-300 animate-pulse">CHOOSE YOUR FATE...</span>';
+                    this.isProcessing = false;
+                }, 300);
+            }
+
+            renderCard(el, card) {
+                el.querySelector('.card-front').innerHTML = card.getHTML();
+            }
+        }
+
+        const game = new DrinkerGame();
+
+    </script>
+</body>
+
+</html>
